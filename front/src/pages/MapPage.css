@@ -1,0 +1,654 @@
+/* =========================================
+   0. 페이지 로딩 화면 (data fetch 중)
+   ========================================= */
+.loading {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%);
+  color: #818cf8;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+/* =========================================
+   1. 전체 레이아웃 및 배경
+   ========================================= */
+.map-page-container {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh; /* 모바일 대응 전용 높이 */
+  /* 노치 안전 패딩 — viewport-fit=cover 와 같이 동작 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%);
+  overflow: hidden;
+  position: relative;
+}
+
+.map-header {
+  flex: 0 0 auto;
+  padding: 20px 24px;
+  padding-left: calc(24px + env(safe-area-inset-left));
+  padding-right: calc(24px + env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 100;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+.btn-back:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); }
+
+.header-info h1 { margin: 0; font-size: 1.2rem; font-weight: 800; color: white; }
+.header-info p { margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8; }
+
+/* =========================================
+   2. 왼쪽 사이드바: 3D 건물 모형 (사각 박스)
+   ========================================= */
+.floor-scroll-viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  perspective: 1200px;
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+  z-index: 10;
+  scrollbar-width: none; /* 파이어폭스 */
+}
+.floor-scroll-viewport::-webkit-scrollbar { display: none; } /* 크롬, 사파리 */
+
+.building-3d-scene {
+  width: 100%;
+  max-width: 280px;
+  transform-style: preserve-3d;
+}
+
+.building-3d-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transform-style: preserve-3d;
+  transform: rotateX(15deg) rotateY(-20deg);
+}
+
+/* --- 3D 큐브 박스 속성 --- */
+:root {
+  --box-depth: 30px;
+  --box-height: 45px;
+}
+
+.floor-3d-row {
+  display: flex;
+  justify-content: center;
+  transform-style: preserve-3d;
+  width: 100%;
+}
+.floor-3d-row.split { gap: 20px; }
+.floor-3d-row.half-left { width: 50%; align-self: flex-start; }
+
+.floor-3d-box {
+  flex: 1;
+  height: var(--box-height);
+  position: relative;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.face {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.face.front {
+  width: 100%; height: 100%;
+  background: rgba(59, 130, 246, 0.15);
+  transform: translateZ(var(--box-depth));
+}
+.face.back {
+  width: 100%; height: 100%;
+  background: rgba(59, 130, 246, 0.1);
+  transform: rotateY(180deg);
+}
+.face.right {
+  width: var(--box-depth); height: 100%;
+  background: rgba(59, 130, 246, 0.35);
+  right: 0; transform-origin: right; transform: rotateY(90deg);
+}
+.face.left {
+  width: var(--box-depth); height: 100%;
+  background: rgba(59, 130, 246, 0.35);
+  left: 0; transform-origin: left; transform: rotateY(-90deg);
+}
+.face.top {
+  width: 100%; height: var(--box-depth);
+  background: rgba(255, 255, 255, 0.15);
+  top: 0; transform-origin: top; transform: rotateX(90deg);
+}
+.face.bottom {
+  width: 100%; height: var(--box-depth);
+  background: rgba(0, 0, 0, 0.5);
+  bottom: 0; transform-origin: bottom; transform: rotateX(-90deg);
+}
+
+/* 활성화 상태 (클릭된 층) */
+.floor-3d-box.active { transform: translateZ(25px) scale(1.08); }
+.floor-3d-box.active .face.front { background: rgba(239, 68, 68, 0.45); border-color: #ef4444; }
+.floor-3d-box.active .box-text strong { color: white; }
+
+.box-text { color: white; font-size: 0.85rem; font-weight: bold; text-shadow: 0 0 8px rgba(0,0,0,0.8); }
+.box-text strong { font-size: 1.1rem; color: #60a5fa; margin-right: 4px; }
+
+/* --- 장식 소품 --- */
+.ground-platform { text-align: center; margin: 8px 0; }
+.ground-platform span {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  padding: 3px 14px;
+  border-radius: 20px;
+  border: 1px dashed #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.roof-plate { height: 15px; position: relative; transform-style: preserve-3d; }
+.roof-pin { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; transform: translateZ(15px); }
+.roof-pin span { background: #10b981; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; margin-bottom: 3px; white-space: nowrap; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+.roof-pin::after { content: ''; width: 2px; height: 12px; background: white; }
+.roof-pin.left { left: 10%; } .roof-pin.center { left: 50%; transform: translateX(-50%) translateZ(15px); } .roof-pin.right { right: 10%; }
+
+.entrance-floater {
+  position: absolute; top: 50%; padding: 2px 6px; background: #fbbf24; color: black;
+  font-weight: 900; font-size: 0.65rem; border-radius: 3px; z-index: 20; pointer-events: none;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+.entrance-floater.left { left: -10px; transform: translateY(-50%) translateZ(calc(var(--box-depth) + 5px)); }
+.entrance-floater.right { right: -10px; transform: translateY(-50%) translateZ(calc(var(--box-depth) + 5px)); }
+.entrance-floater.center { left: 60%; transform: translateX(-50%) translateY(-50%) translateZ(calc(var(--box-depth) + 5px)); }
+
+/* =========================================
+   3. 오른쪽 영역: 맵 뷰포트 (Three.js 캔버스)
+   ========================================= */
+.map-viewport {
+  flex: 0 0 42%;
+  padding-bottom: 0px;
+  margin: 0 16px 16px 16px;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.map-content { width: 100%; height: 100%; position: relative; }
+
+/* 전체화면 모드 — iOS Safari 주소바 보정: vh 폴백 + dvh 우선 */
+.map-content.fullscreen {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 9999 !important;
+  border-radius: 0;
+  background: #000;
+}
+
+.map-content canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+  touch-action: none;
+}
+
+/* 컨트롤 버튼 그룹 */
+.controls-group {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 100000; /* 정보창보다는 낮지만 캔버스보다는 높게 */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  color: white; border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 1.3rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  /* iOS Safari: touch → click 합성을 안정화 (300ms 딜레이 제거 + 더블탭 줌 회피).
+     이거 없으면 풀스크린에서 onClick 이 가끔 fire 안 됨. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+.btn-icon:active { transform: scale(0.9); background: #3b82f6; }
+.btn-icon.nav-btn.active {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+}
+
+/* 워킹 모드 속도 배율 버튼 — 좌상단(우측 컨트롤 그룹과 안 겹침),
+   상단 헤더 아래로 약간 내려서 헤더 글자랑도 안 겹치게. */
+.btn-nav-speed {
+  position: absolute;
+  top: calc(90px + env(safe-area-inset-top));
+  left: calc(20px + env(safe-area-inset-left));
+  z-index: 200;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 8px 16px;
+  min-width: 58px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+}
+
+/* 모바일에선 전반적으로 컨트롤·배율 버튼 축소 */
+@media (max-width: 600px) {
+  .controls-group { gap: 8px; }
+  .btn-icon {
+    width: 36px; height: 36px;
+    font-size: 1.05rem;
+  }
+  .btn-nav-speed {
+    padding: 6px 12px;
+    min-width: 48px;
+    font-size: 0.85rem;
+  }
+  /* 사이드바 입체 층 박스 축소 */
+  :root {
+    --box-depth: 24px;
+    --box-height: 36px;
+  }
+  .building-3d-scene { max-width: 230px; }
+  .box-text { font-size: 0.75rem; }
+  .box-text strong { font-size: 0.95rem; }
+  .floor-scroll-viewport { padding: 24px 0; }
+  /* 헤더 글자 살짝 축소 */
+  .header-info h1 { font-size: 1.05rem; }
+  .header-info p { font-size: 0.72rem; }
+}
+
+.map-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  color: #64748b;
+  pointer-events: none;
+}
+
+/* =========================================
+   4. [핵심] 강의실 정보창 (바텀 시트) - 최상단 고정
+   ========================================= */
+.timetable-sheet {
+  position: fixed; /* absolute 대신 fixed로 화면 전체 기준 고정 */
+  bottom: 0; left: 0; width: 100%;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(25px);
+  border-radius: 28px 28px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 24px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
+  
+  /* 최상단 z-index 설정 (전체화면 9999보다 높아야 함) */
+  z-index: 1000000 !important; 
+  
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.9);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  color: white;
+}
+
+.sheet-handle {
+  width: 45px; height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  margin: -10px auto 25px auto;
+  cursor: pointer;
+}
+
+.sheet-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 24px;
+}
+.sheet-header h2 { margin: 0; font-size: 1.7rem; font-weight: 800; }
+.sheet-header p { margin: 5px 0 0 0; font-size: 0.95rem; color: #94a3b8; }
+
+.status-badge { padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; }
+.status-badge.available { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.status-badge.busy { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+.sheet-body h4 { font-size: 1rem; color: #a5b4fc; margin: 0 0 16px 0; }
+
+.schedule-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 14px 18px; border-radius: 14px; margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+.schedule-item strong { color: #fff; flex: 1; margin: 0 15px; }
+.schedule-item span { color: #94a3b8; font-size: 0.85rem; }
+
+.btn-sheet-close {
+  width: 100%; margin-top: 15px; padding: 16px; border-radius: 16px;
+  border: none; background: rgba(255, 255, 255, 0.12);
+  color: white; font-weight: bold; font-size: 1rem; cursor: pointer;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* =========================================
+   5. 3D 오버레이 (룸 라벨)
+   ========================================= */
+.room-label {
+  background: rgba(0, 0, 0, 0.85);
+  color: white; padding: 5px 12px;
+  border-radius: 8px; font-size: 0.85rem;
+  font-weight: 800; border: 1px solid rgba(255,255,255,0.4);
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  pointer-events: none; /* UI 조작 방해 금지 */
+  user-select: none;
+}
+@media (max-width: 600px) {
+  .room-label { font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; }
+}
+
+.loader {
+  color: #818cf8; font-size: 1.2rem; font-weight: bold;
+  background: rgba(0,0,0,0.5); padding: 20px; border-radius: 20px;
+}
+
+
+/* =========================================
+   엘리베이터 네비게이션 UI 스타일
+   ========================================= */
+.elevator-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* drei <Html> 마커 라벨은 portal 로 DOM 에 렌더돼 매우 큰 z-index 가짐 → 그것보다 높게 */
+  z-index: 2147483000;
+  /* 완전 검은색 — 화면 전환 중 의미 없는 이전 층 캔버스·마커가 비치지 않도록 */
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.elevator-panel {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 35px 60px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.elevator-panel .floor-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 15px;
+}
+
+.elevator-panel .arrow {
+  color: #3b82f6;
+  font-size: 2.2rem;
+  animation: bounceUp 1s infinite;
+}
+
+.elevator-panel p {
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+/* 애니메이션 Keyframes */
+@keyframes elevatorFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bounceUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* ==================================================
+   미디어 플레이어 스타일 하단 컨트롤 바 (Media Player UI)
+   - 스크러빙(드래그) UI 개선 버전 -
+================================================== */
+.media-player-container {
+  position: absolute;
+  bottom: 0; left: 0; width: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+  padding: 30px 20px 20px 20px;
+  z-index: 1000;
+  display: flex; flex-direction: column; gap: 15px;
+}
+
+.media-player-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 10px;
+}
+
+.media-title {
+  color: #fff; font-size: 1.1rem; font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.btn-close-player {
+  background: transparent; color: rgba(255,255,255,0.6);
+  border: none; font-size: 1.2rem; cursor: pointer; transition: 0.2s;
+}
+.btn-close-player:hover { color: #fff; }
+
+.media-controls-row {
+  display: flex; align-items: center; gap: 15px; width: 100%;
+}
+
+.btn-play-pause {
+  background: transparent; color: white; border: none;
+  font-size: 1.5rem; width: 40px; height: 40px;
+  display: flex; justify-content: center; align-items: center;
+  cursor: pointer; transition: transform 0.1s;
+}
+.btn-play-pause:active { transform: scale(0.9); }
+
+/* 1인칭 시점 배속 토글. 1x 는 기본이라 강조 약함, 그 외엔 살짝 강조. */
+.btn-nav-speed {
+  background: rgba(255, 255, 255, 0.08); color: white;
+  border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 999px;
+  padding: 4px 10px; min-width: 44px;
+  font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.btn-nav-speed:hover { background: rgba(255, 255, 255, 0.18); }
+.btn-nav-speed:active { transform: scale(0.92); }
+
+/* 시간표 시트 — 지금 진행 중인 강의 강조 (펄스 글로우 + 점 깜빡임) */
+@keyframes scheduleLivePulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(239, 68, 68, 0.35); }
+  50%      { box-shadow: 0 0 30px rgba(239, 68, 68, 0.65); }
+}
+.schedule-item.live {
+  animation: scheduleLivePulse 2s ease-in-out infinite;
+}
+@keyframes liveDotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.7); }
+}
+.schedule-item.live .live-dot {
+  animation: liveDotBlink 1s ease-in-out infinite;
+}
+
+/* 스크러버 감싸는 영역 */
+.media-scrubber-wrapper {
+  position: relative; flex: 1; height: 28px;
+  display: flex; align-items: center; cursor: pointer;
+}
+
+/* 얇은 회색 배경 선 */
+.scrubber-bg {
+  position: absolute; width: 100%; height: 4px;
+  background: rgba(255,255,255,0.3); border-radius: 2px; pointer-events: none;
+  transition: height 0.2s ease;
+}
+
+/* 차오르는 빨간색 선 */
+.scrubber-fill {
+  position: absolute; height: 4px;
+  background: #ef4444; 
+  border-radius: 2px; pointer-events: none;
+  transition: width 0.1s linear, height 0.2s ease;
+}
+
+/* 투명한 원본 Range 슬라이더 */
+.scrubber-input {
+  position: absolute; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; margin: 0; z-index: 10;
+}
+
+/* 👉 썸(동그라미) 디자인 (가상 요소) */
+.media-scrubber-wrapper::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  background: #ef4444; border-radius: 50%;
+  left: calc(var(--progress, 0%) - 7px);
+  pointer-events: none; 
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+/* 👉 [신규] 드래그 시 따라다니는 말풍선(Tooltip) */
+.scrubber-tooltip {
+  position: absolute;
+  top: -20px; /* 초기 위치 아래로 줌 */
+  left: var(--progress, 0%);
+  transform: translateX(-50%);
+  background: #ef4444;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, top 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 20;
+}
+
+/* 말풍선 꼬리표 */
+.scrubber-tooltip::after {
+  content: ''; position: absolute;
+  bottom: -4px; left: 50%; transform: translateX(-50%);
+  border-width: 5px 5px 0; border-style: solid;
+  border-color: #ef4444 transparent transparent transparent;
+}
+
+/* 👉 [호버 및 드래그 중 효과] 선 두꺼워짐, 동그라미 커짐, 툴팁 나타남 */
+.media-scrubber-wrapper:hover .scrubber-bg,
+.media-scrubber-wrapper.scrubbing .scrubber-bg,
+.media-scrubber-wrapper:hover .scrubber-fill,
+.media-scrubber-wrapper.scrubbing .scrubber-fill {
+  height: 6px; /* 선 두꺼워짐 */
+}
+
+.media-scrubber-wrapper:hover::after,
+.media-scrubber-wrapper.scrubbing::after {
+  transform: scale(1.6); /* 동그라미 1.6배 커짐 */
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); /* 붉은색 네온 글로우 효과 */
+}
+
+.media-scrubber-wrapper:hover .scrubber-tooltip,
+.media-scrubber-wrapper.scrubbing .scrubber-tooltip {
+  opacity: 1; /* 툴팁 보임 */
+  top: -35px; /* 위로 뽁! 하고 튀어오름 */
+}
+
+/* 모바일 대응 */
+@media (max-width: 600px) {
+  .media-player-container { padding: 16px 12px 12px 12px; gap: 10px; }
+  .media-title { font-size: 0.88rem; }
+  .btn-play-pause { font-size: 1.2rem; width: 34px; height: 34px; }
+  .btn-close-player { font-size: 1.05rem; }
+  .scrubber-tooltip { font-size: 0.7rem; padding: 3px 8px; }
+
+  /* 시간표 시트 — 한 번 더 축소 (사용자 요청) */
+  .timetable-sheet { padding: 12px 14px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .sheet-handle { width: 36px; height: 4px; margin: -4px auto 10px auto; }
+  .sheet-header { margin-bottom: 10px; }
+  .sheet-header h2 { font-size: 1.05rem; }
+  .sheet-header p { font-size: 0.72rem; margin-top: 2px; }
+  .status-badge { padding: 3px 8px; font-size: 0.62rem; border-radius: 14px; }
+  .sheet-body h4 { font-size: 0.78rem; margin-bottom: 7px; }
+  .schedule-item { padding: 8px 10px; font-size: 0.78rem; border-radius: 9px; margin-bottom: 5px; }
+  .schedule-item strong { margin: 0 10px; }
+  .schedule-item span { font-size: 0.68rem; }
+  .btn-sheet-close { padding: 9px; font-size: 0.82rem; margin-top: 7px; border-radius: 10px; }
+
+  /* 엘리베이터/구역전환 오버레이 패널 */
+  .elevator-panel { padding: 22px 32px; border-radius: 16px; }
+  .elevator-panel .floor-indicator { font-size: 1.9rem; gap: 14px; margin-bottom: 10px; }
+  .elevator-panel .arrow { font-size: 1.5rem; }
+  .elevator-panel p { font-size: 0.95rem; letter-spacing: 0.5px; }
+
+  /* 출입구 선택 카드 (인라인 스타일이라 className 으로 강제 축소) */
+  .entrance-select-view { padding: 0 14px 14px 14px !important; }
+  .entrance-select-view h2 { font-size: 1.05rem !important; }
+  .entrance-select-view p { font-size: 0.75rem !important; }
+}

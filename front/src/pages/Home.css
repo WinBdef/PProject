@@ -1,0 +1,92 @@
+/* Home.css - Responsive Fixed Version */
+
+.home-scene {
+    width: 100%;
+    /* 100vh 는 iOS Safari 에서 주소바 포함 — 콘텐츠가 아래로 잘림.
+       dvh = 동적 viewport 높이(주소바 빼고 실제 보이는 영역). */
+    height: 100vh;
+    height: 100dvh;
+    /* 노치/홈인디케이터 영역 안전 패딩 (viewport-fit=cover 와 짝). */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    position: relative; overflow: hidden;
+    background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+}
+
+/* 상단 */
+.intro-text { text-align: center; margin-bottom: 20px; z-index: 1000; }
+.intro-text h1 {
+    font-size: 1.6rem; color: #fff; margin-bottom: 5px;
+    background: linear-gradient(to right, #ffffff, #818cf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-weight: 800; cursor: pointer;
+}
+.intro-text p { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; }
+
+/* 3D 카드 스테이지 */
+.stage {
+    position: relative; width: 100%; height: 60%;
+    display: flex; justify-content: center; align-items: center;
+    perspective: 1200px; cursor: grab; touch-action: none;
+}
+.stage:active { cursor: grabbing; }
+
+.card {
+    position: absolute; width: 260px; height: 380px;
+    border-radius: 24px; background-size: cover; background-position: center;
+    display: flex; justify-content: center; align-items: flex-end;
+    border: 1.5px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden; will-change: transform, opacity;
+}
+
+/* 보라색 광채 효과 */
+.card.front-glow {
+    border-color: rgba(167, 139, 250, 0.7);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.card-overlay {
+    width: 100%; padding: 25px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    text-align: center;
+}
+.card h2 { color: #fff; margin-bottom: 15px; font-size: 1.4rem; font-weight: 700; }
+
+.btn-enter {
+    width: 100%; padding: 12px 0; border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1); color: #fff;
+    font-weight: 600; cursor: pointer; transition: 0.3s;
+}
+.btn-enter:hover { background: #6366f1; border-color: transparent; }
+
+/* 반응형 모바일 조정 */
+@media (max-width: 600px) {
+    .card { width: 220px; height: 320px; }
+    .intro-text h1 { font-size: 1.3rem; }
+}
+
+/* 세로 짧은 폰 (iPhone SE 류, 노치 폰 가로모드 등) — 카드/스테이지 축소 */
+@media (max-height: 760px) {
+    .stage { height: 55%; }
+    .card { width: 200px; height: 290px; }
+    .intro-text { margin-bottom: 10px; }
+    .intro-text h1 { font-size: 1.3rem; }
+    .intro-text p { font-size: 0.8rem; }
+}
+
+/* 일반 노치폰 (iPhone 14/15 등 393~430px 폭) — 카드가 viewport 채우는 느낌 줄이기.
+   확대된 것처럼 보이는 인상이 줄어듦. */
+@media (max-width: 480px) {
+    .stage { height: 52%; perspective: 900px; }
+    .card { width: 200px; height: 290px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 10px; }
+    .btn-enter { padding: 9px 0; font-size: 0.85rem; }
+    .intro-text h1 { font-size: 1.25rem; }
+    .intro-text p { font-size: 0.78rem; }
+    .intro-text { margin-bottom: 14px; }
+}

@@ -1,0 +1,43 @@
+# ===== 루트엔 front/ , backend/ , README 만 추적 =====
+/*
+!/.gitignore
+!/README.md
+!/front/
+!/backend/
+
+# ===== 대용량 3D 에셋: GitHub 말고 Google Drive 로 =====
+*.glb
+*.splat
+*.blend
+*.bak
+*.ply
+*.zip
+front/glb-backups/
+front/blender-sources/
+
+# ===== 빌드 산출물 / 의존성 / 캐시 =====
+node_modules/
+front/dist/
+front/.vite/
+dist/
+
+# ===== 백엔드 데이터(좌표·경로·시간표 등 상세 내용) 전체 미추적 — 별도 제공 =====
+backend/data/
+
+# ===== 파이썬 캐시 / 가상환경 =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== 개발 메모 (로컬 전용, 미추적) =====
+CLAUDE.md
+**/CLAUDE.md
+.claude/
+
+# ===== 환경변수 / OS / 에디터 잡파일 =====
+.env
+.env.*
+.DS_Store
+*.swp
+~$*

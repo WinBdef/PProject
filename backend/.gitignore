@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# venv
+venv/
+.venv/
+env/
+
+# 환경변수 (시크릿 포함)
+.env
+.env.local
+
+# 동기화로 생성되는 캐시성 데이터 (원본 .xlsx와 buildings/ai/vision.json은 추적 유지)
+data/raw_events.json
+data/events_raw.json
+data/events.json
+
+# SQLite 런타임 DB (시드는 data/buildings/*.json, migrate_json_to_db.py 로 재생성)
+data/app.db
+data/*.db-journal

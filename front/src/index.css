@@ -1,0 +1,36 @@
+/* src/index.css */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+* {
+  box-sizing: border-box;
+  /* 모바일에서 터치했을 때 파란색 하이라이트 제거 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  /* 전체 우주 배경 */
+  background: radial-gradient(circle at 50% 30%, #2b3a6b 0%, #151932 60%, #0a0c14 100%);
+  
+  /* [핵심] 모바일 브라우저 주소창 높이까지 계산한 '진짜' 꽉 찬 화면 */
+  min-height: 100dvh;
+  
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color: white;
+  
+  /* 가로 스크롤 방지 & 새로고침 제스처 방지 */
+  overflow: hidden;
+  overscroll-behavior: none; 
+}
+
+#root {
+  width: 100%;
+  height: 100dvh; /* 여기도 dvh 사용 */
+}
+
+/* 모바일에선 root font 14px (기본 16) — rem 기반 글자·여백 전부 12.5% 자동 축소.
+   개별 컴포넌트마다 모바일 사이즈 따로 정의하지 않아도 비례적으로 작아짐. */
+@media (max-width: 600px) {
+  html { font-size: 14px; }
+}
